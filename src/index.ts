@@ -10,14 +10,18 @@ interface ModelConfig {
 }
 
 const DEFAULT_MODELS = [
+  "@cf/meta/llama-3.2-1b-instruct",
+  "@cf/meta/llama-3.2-3b-instruct",
   "@cf/meta/llama-3.1-8b-instruct",
-  "@cf/meta/llama-3.1-70b-instruct",
+  "@cf/zai-org/glm-4.7-flash",
   "@cf/mistral/mistral-7b-instruct-v0.1",
 ];
 
 const DEFAULT_MODEL_COSTS: Record<string, { inputPer1M: number; outputPer1M: number }> = {
+  "@cf/meta/llama-3.2-1b-instruct": { inputPer1M: 2457, outputPer1M: 18252 },
+  "@cf/meta/llama-3.2-3b-instruct": { inputPer1M: 4625, outputPer1M: 30475 },
   "@cf/meta/llama-3.1-8b-instruct": { inputPer1M: 2610, outputPer1M: 2610 },
-  "@cf/meta/llama-3.1-70b-instruct": { inputPer1M: 10440, outputPer1M: 10440 },
+  "@cf/zai-org/glm-4.7-flash": { inputPer1M: 2610, outputPer1M: 2610 },
   "@cf/mistral/mistral-7b-instruct-v0.1": { inputPer1M: 2610, outputPer1M: 2610 },
 };
 
