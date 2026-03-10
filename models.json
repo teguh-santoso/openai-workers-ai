@@ -1,0 +1,13 @@
+{
+  "models": [
+    "@cf/meta/llama-3.1-8b-instruct",
+    "@cf/meta/llama-3.1-70b-instruct",
+    "@cf/mistral/mistral-7b-instruct-v0.1"
+  ],
+  "modelCosts": {
+    "@cf/meta/llama-3.1-8b-instruct": { "inputPer1M": 2610, "outputPer1M": 2610 },
+    "@cf/meta/llama-3.1-70b-instruct": { "inputPer1M": 10440, "outputPer1M": 10440 },
+    "@cf/mistral/mistral-7b-instruct-v0.1": { "inputPer1M": 2610, "outputPer1M": 2610 }
+  },
+  "dailyLimit": 10000
+}
