@@ -5,8 +5,6 @@ export interface Env {
 
 interface ModelConfig {
   models: string[];
-  modelCosts?: Record<string, { inputPer1M: number; outputPer1M: number }>;
-  dailyLimit?: number;
 }
 
 const DEFAULT_MODELS = [
@@ -16,97 +14,6 @@ const DEFAULT_MODELS = [
   "@cf/zai-org/glm-4.7-flash",
   "@cf/mistral/mistral-7b-instruct-v0.1",
 ];
-
-const DEFAULT_MODEL_COSTS: Record<string, { inputPer1M: number; outputPer1M: number }> = {
-  "@cf/meta/llama-3.2-1b-instruct": { inputPer1M: 2457, outputPer1M: 18252 },
-  "@cf/meta/llama-3.2-3b-instruct": { inputPer1M: 4625, outputPer1M: 30475 },
-  "@cf/meta/llama-3.1-8b-instruct": { inputPer1M: 2610, outputPer1M: 2610 },
-  "@cf/zai-org/glm-4.7-flash": { inputPer1M: 2610, outputPer1M: 2610 },
-  "@cf/mistral/mistral-7b-instruct-v0.1": { inputPer1M: 2610, outputPer1M: 2610 },
-};
-
-const DEFAULT_DAILY_LIMIT = 10000;
-
-let neuronUsage = {
-  used: 0,
-  resetAt: getNextResetTime(),
-};
-
-function getNextResetTime(): Date {
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  tomorrow.setUTCHours(0, 0, 0, 0);
-  return tomorrow;
-}
-
-function checkAndResetIfNeeded(): void {
-  const now = new Date();
-  if (now >= neuronUsage.resetAt) {
-    neuronUsage.used = 0;
-    neuronUsage.resetAt = getNextResetTime();
-  }
-}
-
-async function getModelCosts(): Promise<Record<string, { inputPer1M: number; outputPer1M: number }>> {
-  try {
-    const modelsJson = await import("../models.json");
-    return (modelsJson as ModelConfig).modelCosts || DEFAULT_MODEL_COSTS;
-  } catch {
-    return DEFAULT_MODEL_COSTS;
-  }
-}
-
-async function getDailyLimit(): Promise<number> {
-  try {
-    const modelsJson = await import("../models.json");
-    return (modelsJson as ModelConfig).dailyLimit || DEFAULT_DAILY_LIMIT;
-  } catch {
-    return DEFAULT_DAILY_LIMIT;
-  }
-}
-
-function calculateNeurons(model: string, inputTokens: number, outputTokens: number, costs: Record<string, { inputPer1M: number; outputPer1M: number }>): number {
-  const modelCost = costs[model] || DEFAULT_MODEL_COSTS[model] || { inputPer1M: 2610, outputPer1M: 2610 };
-  const inputNeurons = (inputTokens / 1_000_000) * modelCost.inputPer1M;
-  const outputNeurons = (outputTokens / 1_000_000) * modelCost.outputPer1M;
-  return Math.ceil(inputNeurons + outputNeurons);
-}
-
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
-
-async function getUsage(): Promise<{ used: number; limit: number; remaining: number; percentageRemaining: number; resetsAt: string }> {
-  checkAndResetIfNeeded();
-  const limit = await getDailyLimit();
-  const remaining = Math.max(0, limit - neuronUsage.used);
-  const percentageRemaining = Math.round((remaining / limit) * 100);
-  
-  return {
-    used: neuronUsage.used,
-    limit,
-    remaining,
-    percentageRemaining,
-    resetsAt: neuronUsage.resetAt.toISOString(),
-  };
-}
-
-function addNeuronUsage(neurons: number): void {
-  checkAndResetIfNeeded();
-  neuronUsage.used += neurons;
-}
-
-function getNeuronHeaders(limit: number): Record<string, string> {
-  const remaining = Math.max(0, limit - neuronUsage.used);
-  const percentageRemaining = Math.round((remaining / limit) * 100);
-  
-  return {
-    "X-Neurons-Used": String(neuronUsage.used),
-    "X-Neurons-Remaining": String(remaining),
-    "X-Neurons-Percentage-Remaining": `${percentageRemaining}%`,
-  };
-}
 
 async function getAllowedModels(): Promise<string[]> {
   try {
@@ -203,12 +110,6 @@ export default {
       return handleModels(request);
     }
 
-    if (path === "/v1/usage" && method === "GET") {
-      const authError = validateAuth(request, env);
-      if (authError) return authError;
-      return handleUsage(request);
-    }
-
     if (path === "/health" && method === "GET") {
       return new Response(JSON.stringify({ status: "ok" }), {
         headers: { "Content-Type": "application/json" },
@@ -254,25 +155,13 @@ async function handleChatCompletions(request: Request, env: Env): Promise<Respon
       aiOptions.max_tokens = max_tokens;
     }
 
-    const inputText = messages.map((m: any) => m.content).join(" ");
-    const inputTokens = estimateTokens(inputText);
-
     const result: any = await env.AI.run(model, aiOptions);
-
-    const outputText = result.response || "";
-    const outputTokens = estimateTokens(outputText);
-
-    const modelCosts = await getModelCosts();
-    const neuronsUsed = calculateNeurons(model, inputTokens, outputTokens, modelCosts);
-    addNeuronUsage(neuronsUsed);
-
-    const dailyLimit = await getDailyLimit();
-    const neuronHeaders = getNeuronHeaders(dailyLimit);
 
     if (stream) {
       const streamResponse = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
+          const content = result.response || "";
 
           const chunk = {
             id: `chatcmpl-${requestId}`,
@@ -282,7 +171,7 @@ async function handleChatCompletions(request: Request, env: Env): Promise<Respon
             choices: [
               {
                 index: 0,
-                delta: { content: outputText },
+                delta: { content },
                 finish_reason: null,
               },
             ],
@@ -316,7 +205,6 @@ async function handleChatCompletions(request: Request, env: Env): Promise<Respon
           "Cache-Control": "no-cache",
           "Connection": "keep-alive",
           "Access-Control-Allow-Origin": "*",
-          ...neuronHeaders,
         },
       });
     }
@@ -326,7 +214,7 @@ async function handleChatCompletions(request: Request, env: Env): Promise<Respon
         index: 0,
         message: {
           role: "assistant",
-          content: outputText,
+          content: result.response || "",
         },
         finish_reason: "stop",
       },
@@ -336,7 +224,6 @@ async function handleChatCompletions(request: Request, env: Env): Promise<Respon
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
-        ...neuronHeaders,
       },
     });
   } catch (error: any) {
@@ -434,15 +321,4 @@ async function handleModels(_request: Request): Promise<Response> {
     }),
     { headers: { "Content-Type": "application/json" } }
   );
-}
-
-async function handleUsage(_request: Request): Promise<Response> {
-  const usage = await getUsage();
-
-  return new Response(JSON.stringify(usage), {
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
 }

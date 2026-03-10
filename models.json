@@ -5,13 +5,5 @@
     "@cf/meta/llama-3.1-8b-instruct",
     "@cf/zai-org/glm-4.7-flash",
     "@cf/mistral/mistral-7b-instruct-v0.1"
-  ],
-  "modelCosts": {
-    "@cf/meta/llama-3.2-1b-instruct": { "inputPer1M": 2457, "outputPer1M": 18252 },
-    "@cf/meta/llama-3.2-3b-instruct": { "inputPer1M": 4625, "outputPer1M": 30475 },
-    "@cf/meta/llama-3.1-8b-instruct": { "inputPer1M": 2610, "outputPer1M": 2610 },
-    "@cf/zai-org/glm-4.7-flash": { "inputPer1M": 2610, "outputPer1M": 2610 },
-    "@cf/mistral/mistral-7b-instruct-v0.1": { "inputPer1M": 2610, "outputPer1M": 2610 }
-  },
-  "dailyLimit": 10000
+  ]
 }

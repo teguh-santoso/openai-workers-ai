@@ -57,21 +57,14 @@ Edit `models.json` to enable the Workers AI models you want to use:
 ```json
 {
   "models": [
+    "@cf/meta/llama-3.2-1b-instruct",
+    "@cf/meta/llama-3.2-3b-instruct",
     "@cf/meta/llama-3.1-8b-instruct",
-    "@cf/meta/llama-3.1-70b-instruct",
+    "@cf/zai-org/glm-4.7-flash",
     "@cf/mistral/mistral-7b-instruct-v0.1"
-  ],
-  "modelCosts": {
-    "@cf/meta/llama-3.1-8b-instruct": { "inputPer1M": 2610, "outputPer1M": 2610 },
-    "@cf/meta/llama-3.1-70b-instruct": { "inputPer1M": 10440, "outputPer1M": 10440 },
-    "@cf/mistral/mistral-7b-instruct-v0.1": { "inputPer1M": 2610, "outputPer1M": 2610 }
-  },
-  "dailyLimit": 10000
+  ]
 }
 ```
-
-- `modelCosts`: Neuron cost per 1M tokens for each model (input/output)
-- `dailyLimit`: Maximum neurons per day (default: 10000 for free tier)
 
 Available models can be found at [Cloudflare Workers AI Models](https://developers.cloudflare.com/workers-ai/models/).
 
@@ -128,34 +121,6 @@ curl -X POST http://localhost:8787/v1/chat/completions \
 ```bash
 curl -H "Authorization: Bearer YOUR_API_KEY" \
   http://localhost:8787/v1/models
-```
-
-### Usage (Neuron Tracking)
-
-```bash
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-  http://localhost:8787/v1/usage
-```
-
-Response:
-```json
-{
-  "used": 2500,
-  "limit": 10000,
-  "remaining": 7500,
-  "percentageRemaining": 75,
-  "resetsAt": "2026-03-12T00:00:00.000Z"
-}
-```
-
-### Response Headers
-
-Every API response includes neuron usage headers:
-
-```bash
-X-Neurons-Used: 500
-X-Neurons-Remaining: 9500
-X-Neurons-Percentage-Remaining: 95%
 ```
 
 ### Health Check
