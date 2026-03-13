@@ -16,7 +16,17 @@ const DEFAULT_MODELS = [
 ];
 
 function toWorkersAIModel(model: string): string {
-  return model.startsWith("@cf/") ? model : `@cf/${model}`;
+  if (model.startsWith("@cf/")) {
+    return model;
+  }
+  
+  if (model.includes("/")) {
+    const parts = model.split("/");
+    const lastTwo = parts.slice(-2).join("/");
+    return `@cf/${lastTwo}`;
+  }
+  
+  return `@cf/${model}`;
 }
 
 async function getAllowedModels(): Promise<string[]> {
@@ -131,19 +141,6 @@ async function handleChatCompletions(request: Request, env: Env): Promise<Respon
   try {
     const body = await request.json();
     const { messages, model, stream, temperature, max_tokens } = body;
-
-    const allowedModels = await getAllowedModels();
-    if (!allowedModels.includes(model)) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: `Model '${model}' is not allowed. Allowed models: ${allowedModels.join(", ")}`,
-            type: "invalid_request_error",
-          },
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
 
     const requestId = Math.random().toString(36).substring(2, 15);
 
