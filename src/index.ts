@@ -8,12 +8,16 @@ interface ModelConfig {
 }
 
 const DEFAULT_MODELS = [
-  "@cf/meta/llama-3.2-1b-instruct",
-  "@cf/meta/llama-3.2-3b-instruct",
-  "@cf/meta/llama-3.1-8b-instruct",
-  "@cf/zai-org/glm-4.7-flash",
-  "@cf/mistral/mistral-7b-instruct-v0.1",
+  "meta/llama-3.2-1b-instruct",
+  "meta/llama-3.2-3b-instruct",
+  "meta/llama-3.1-8b-instruct",
+  "zai-org/glm-4.7-flash",
+  "mistral/mistral-7b-instruct-v0.1",
 ];
+
+function toWorkersAIModel(model: string): string {
+  return model.startsWith("@cf/") ? model : `@cf/${model}`;
+}
 
 async function getAllowedModels(): Promise<string[]> {
   try {
@@ -155,7 +159,7 @@ async function handleChatCompletions(request: Request, env: Env): Promise<Respon
       aiOptions.max_tokens = max_tokens;
     }
 
-    const result: any = await env.AI.run(model, aiOptions);
+    const result: any = await env.AI.run(toWorkersAIModel(model), aiOptions);
 
     if (stream) {
       const streamResponse = new ReadableStream({
@@ -245,7 +249,7 @@ async function handleEmbeddings(request: Request, env: Env): Promise<Response> {
     const { input, model } = body;
 
     const allowedModels = await getAllowedModels();
-    const embeddingModels = allowedModels.filter((m) => m.startsWith("@cf/"));
+    const embeddingModels = allowedModels.filter((m) => !m.includes("/"));
 
     if (!embeddingModels.includes(model)) {
       return new Response(

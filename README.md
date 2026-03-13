@@ -97,7 +97,7 @@ curl -X POST http://localhost:8787/v1/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "@cf/meta/llama-3.1-8b-instruct",
+    "model": "meta/llama-3.1-8b-instruct",
     "messages": [{"role": "user", "content": "Hello!"}],
     "stream": false
   }'
@@ -110,7 +110,7 @@ curl -X POST http://localhost:8787/v1/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "@cf/meta/llama-3.1-8b-instruct",
+    "model": "meta/llama-3.1-8b-instruct",
     "messages": [{"role": "user", "content": "Hello!"}],
     "stream": true
   }'
@@ -152,7 +152,7 @@ const openai = new OpenAI({
 });
 
 const chatCompletion = await openai.chat.completions.create({
-  model: "@cf/meta/llama-3.1-8b-instruct",
+  model: "meta/llama-3.1-8b-instruct",
   messages: [{ role: "user", content: "Hello!" }],
 });
 ```
